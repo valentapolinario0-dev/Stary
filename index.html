@@ -2,206 +2,191 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>GTA Moto Lite</title>
-
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>GTA Moto RP</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-body { margin:0; overflow:hidden; background:black; }
+body { margin:0; overflow:hidden; background:black; font-family:Arial; }
 
+/* MENU */
+#menu {
+  position:absolute;
+  width:100%;
+  height:100%;
+  background:black;
+  color:white;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+}
+
+button {
+  padding:15px;
+  margin:10px;
+  font-size:18px;
+  border:none;
+  border-radius:10px;
+}
+
+/* HUD */
 #hud {
   position:absolute;
   top:10px;
   left:10px;
   color:white;
-  font-family:Arial;
-  font-size:18px;
+  display:none;
 }
 </style>
 </head>
 
 <body>
 
-<div id="hud">
-💰 0 <br>
-❤️ 100
+<div id="menu">
+  <h1>🏍️ GTA Moto RP</h1>
+
+  <button onclick="startStory()">🎬 História</button>
+  <button onclick="createServer()">🌐 Criar Servidor</button>
+  <button onclick="joinServer()">🔗 Entrar no Servidor</button>
+
+  <input id="ip" placeholder="IP do servidor (ex: 192.168.0.10)">
 </div>
 
+<div id="hud">💰 0</div>
+
 <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
+<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 
 <script>
 
-// ================= TRAVAR TELA =================
-async function lockLandscape(){
-  try {
-    await screen.orientation.lock("landscape");
-  } catch(e){}
+let socket;
+let multiplayer = false;
+
+// ================= MENU =================
+function startStory(){
+  document.getElementById("menu").style.display="none";
+  document.getElementById("hud").style.display="block";
+  startGame();
 }
-document.body.addEventListener("click", lockLandscape);
 
-// ================= CENA =================
-let scene = new THREE.Scene();
+function createServer(){
+  alert("Inicie o server.js no PC primeiro!");
+}
 
-let camera = new THREE.PerspectiveCamera(
-  75,
-  window.innerWidth/window.innerHeight,
-  0.1,
-  1000
-);
+function joinServer(){
+  let ip = document.getElementById("ip").value;
+  if(!ip) return alert("Digite o IP");
 
-let renderer = new THREE.WebGLRenderer({antialias:true});
+  socket = io("http://" + ip + ":3000");
+  multiplayer = true;
+
+  document.getElementById("menu").style.display="none";
+  document.getElementById("hud").style.display="block";
+
+  startGame();
+}
+
+// ================= JOGO =================
+let scene, camera, renderer, moto;
+let players = {};
+
+function startGame(){
+
+scene = new THREE.Scene();
+
+camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+
+renderer = new THREE.WebGLRenderer();
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
-// LUZ
+// luz
 let light = new THREE.DirectionalLight(0xffffff,1);
 light.position.set(10,20,10);
 scene.add(light);
 
-// ================= MAPA =================
-
 // chão
 let ground = new THREE.Mesh(
-  new THREE.PlaneGeometry(400,400),
+  new THREE.PlaneGeometry(300,300),
   new THREE.MeshStandardMaterial({color:0x222222})
 );
 ground.rotation.x = -Math.PI/2;
 scene.add(ground);
 
-// prédios
-for(let i=0;i<40;i++){
-  let b = new THREE.Mesh(
-    new THREE.BoxGeometry(5,Math.random()*20+5,5),
-    new THREE.MeshStandardMaterial({color:0x777777})
-  );
-  b.position.set(
-    Math.random()*200-100,
-    b.geometry.parameters.height/2,
-    Math.random()*200-100
-  );
-  scene.add(b);
-}
-
-// ================= PLAYER =================
-
-let moto = new THREE.Mesh(
+// player
+moto = new THREE.Mesh(
   new THREE.BoxGeometry(2,1,4),
   new THREE.MeshStandardMaterial({color:0xff0000})
 );
-moto.position.y = 1;
+moto.position.y=1;
 scene.add(moto);
 
-// ================= MOEDAS =================
-let coins = [];
-for(let i=0;i<15;i++){
-  let coin = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.5,0.5,0.2,16),
-    new THREE.MeshStandardMaterial({color:0xffff00})
-  );
-  coin.position.set(Math.random()*100-50,1,Math.random()*100-50);
-  scene.add(coin);
-  coins.push(coin);
-}
-
-// ================= BOTS =================
-let bots = [];
-for(let i=0;i<8;i++){
-  let bot = new THREE.Mesh(
-    new THREE.BoxGeometry(2,1,4),
-    new THREE.MeshStandardMaterial({color:0x00ff00})
-  );
-  bot.position.set(Math.random()*100-50,1,Math.random()*100-50);
-  scene.add(bot);
-  bots.push(bot);
-}
-
-// ================= CONTROLES =================
+// CONTROLE
 let keys = {};
 document.addEventListener("keydown", e=>keys[e.key]=true);
 document.addEventListener("keyup", e=>keys[e.key]=false);
 
-// ================= SISTEMA =================
-let speed = 0;
-let money = 0;
-let life = 100;
-
-// ================= CÂMERA SUAVE =================
-let cameraOffset = new THREE.Vector3(0, 5, -10);
+// CÂMERA
+let cameraOffset = new THREE.Vector3(0,5,-10);
 let cameraTarget = new THREE.Vector3();
 
-function updateCamera(){
-
-  let offset = cameraOffset.clone();
-
-  offset.applyAxisAngle(new THREE.Vector3(0,1,0), moto.rotation.y);
-
-  let desiredPosition = moto.position.clone().add(offset);
-
-  camera.position.lerp(desiredPosition, 0.1);
-
-  cameraTarget.lerp(moto.position, 0.1);
-  camera.lookAt(cameraTarget);
-}
-
-// ================= LOOP =================
+// LOOP
 function animate(){
 requestAnimationFrame(animate);
 
 // movimento
-if(keys["w"]) speed = 0.5;
-else speed *= 0.95;
-
+let speed = 0;
+if(keys["w"]) speed=0.5;
 if(keys["a"]) moto.rotation.y += 0.05;
 if(keys["d"]) moto.rotation.y -= 0.05;
 
 moto.translateZ(speed);
 
 // câmera
-updateCamera();
+let offset = cameraOffset.clone();
+offset.applyAxisAngle(new THREE.Vector3(0,1,0), moto.rotation.y);
+let desired = moto.position.clone().add(offset);
 
-// moedas
-coins.forEach((coin,i)=>{
-coin.rotation.y += 0.1;
+camera.position.lerp(desired,0.1);
+cameraTarget.lerp(moto.position,0.1);
+camera.lookAt(cameraTarget);
 
-if(coin.position.distanceTo(moto.position)<2){
-scene.remove(coin);
-coins.splice(i,1);
-money++;
+// ONLINE
+if(multiplayer && socket){
+  socket.emit("move", {
+    x:moto.position.x,
+    y:moto.position.y,
+    z:moto.position.z
+  });
 }
+
+// outros players
+if(socket){
+socket.on("players", data=>{
+  for(let id in data){
+
+    if(socket.id === id) continue;
+
+    if(!players[id]){
+      let p = new THREE.Mesh(
+        new THREE.BoxGeometry(2,1,4),
+        new THREE.MeshStandardMaterial({color:0xffffff})
+      );
+      scene.add(p);
+      players[id]=p;
+    }
+
+    players[id].position.set(data[id].x,data[id].y,data[id].z);
+  }
 });
-
-// bots dano
-bots.forEach(bot=>{
-bot.position.x += Math.sin(Date.now()*0.001);
-
-if(bot.position.distanceTo(moto.position)<2){
-life -= 0.3;
 }
-});
-
-// morte
-if(life <= 0){
-alert("Você morreu!");
-location.reload();
-}
-
-// HUD
-document.getElementById("hud").innerHTML =
-"💰 "+money+"<br>❤️ "+Math.floor(life);
 
 renderer.render(scene,camera);
 }
 
 animate();
-
-// ================= RESIZE =================
-window.addEventListener("resize", ()=>{
-camera.aspect = window.innerWidth/window.innerHeight;
-camera.updateProjectionMatrix();
-renderer.setSize(window.innerWidth, window.innerHeight);
-});
+}
 
 </script>
-
 </body>
 </html>
