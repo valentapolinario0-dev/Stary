@@ -1,43 +1,97 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <title>Contato</title>
+<meta charset="UTF-8">
+<title>Moto Voadora</title>
+<style>
+  body {
+    margin: 0;
+    overflow: hidden;
+    background: #87CEEB;
+  }
+  canvas {
+    display: block;
+  }
+</style>
 </head>
 <body>
 
-  <h2>Envie uma mensagem</h2>
+<canvas id="game"></canvas>
 
-  <form id="form">
-    <input type="text" name="nome">
-<input type="email" name="email">
-<textarea name="mensagem"></textarea>
-    
-    <label>
-      <input type="checkbox" required>
-      Eu concordo em enviar essas informações
-    </label><br><br>
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
 
-    <button type="submit">Enviar</button>
-  </form>
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
 
-  <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
-  <script>
-    (function(){
-      emailjs.init("gDVsZYZZF_7cUdXDh"); // coloque sua chave aqui
-    })();
+// MOTO
+let moto = {
+  x: 100,
+  y: 300,
+  width: 60,
+  height: 30,
+  velocityY: 0,
+  gravity: 0.5,
+  lift: -10
+};
 
-    document.getElementById("form").addEventListener("submit", function(e){
-      e.preventDefault();
+// CHÃO
+let ground = canvas.height - 50;
 
-      emailjs.sendForm("service_n3yks3i", "template_1b6s5wf", this)
-        .then(function() {
-          alert("Mensagem enviada!");
-        }, function(error) {
-          alert("Erro: " + JSON.stringify(error));
-        });
-    });
-  </script>
+// CONTROLE
+document.addEventListener("keydown", e => {
+  if (e.code === "Space") {
+    moto.velocityY = moto.lift;
+  }
+});
+
+// GAME LOOP
+function update() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Gravidade
+  moto.velocityY += moto.gravity;
+  moto.y += moto.velocityY;
+
+  // Colisão com chão
+  if (moto.y > ground - moto.height) {
+    moto.y = ground - moto.height;
+    moto.velocityY = 0;
+  }
+
+  draw();
+  requestAnimationFrame(update);
+}
+
+// DESENHAR
+function draw() {
+  // chão
+  ctx.fillStyle = "#654321";
+  ctx.fillRect(0, ground, canvas.width, 50);
+
+  // moto
+  ctx.fillStyle = "black";
+  ctx.fillRect(moto.x, moto.y, moto.width, moto.height);
+
+  // roda
+  ctx.beginPath();
+  ctx.arc(moto.x + 10, moto.y + 30, 10, 0, Math.PI * 2);
+  ctx.arc(moto.x + 50, moto.y + 30, 10, 0, Math.PI * 2);
+  ctx.fill();
+
+  // asa
+  ctx.fillStyle = "white";
+  ctx.beginPath();
+  ctx.moveTo(moto.x + 20, moto.y);
+  ctx.lineTo(moto.x + 40, moto.y - 20);
+  ctx.lineTo(moto.x + 60, moto.y);
+  ctx.fill();
+}
+
+// iniciar
+update();
+</script>
 
 </body>
 </html>
