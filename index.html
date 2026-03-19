@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Contato</title>
+</head>
+<body>
+
+  <h2>Envie uma mensagem</h2>
+
+  <form id="form">
+    <input type="text" name="nome" placeholder="Seu nome" required><br><br>
+    <input type="email" name="email" placeholder="Seu email" required><br><br>
+    <textarea name="mensagem" placeholder="Digite sua mensagem" required></textarea><br><br>
+    
+    <label>
+      <input type="checkbox" required>
+      Eu concordo em enviar essas informações
+    </label><br><br>
+
+    <button type="submit">Enviar</button>
+  </form>
+
+  <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
+  <script>
+    (function(){
+      emailjs.init("gDVsZYZZF_7cUdXDh"); // coloque sua chave aqui
+    })();
+
+    document.getElementById("form").addEventListener("submit", function(e){
+      e.preventDefault();
+
+      emailjs.sendForm("service_n3yks3i", "template_1b6s5wf", this)
+        .then(function() {
+          alert("Mensagem enviada!");
+        }, function(error) {
+          alert("Erro: " + JSON.stringify(error));
+        });
+    });
+  </script>
+
+</body>
+</html>
