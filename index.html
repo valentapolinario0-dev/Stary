@@ -2,95 +2,129 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Moto Voadora</title>
+<title>Moto 3D</title>
 <style>
-  body {
-    margin: 0;
-    overflow: hidden;
-    background: #87CEEB;
-  }
-  canvas {
-    display: block;
-  }
+body { margin:0; overflow:hidden; }
+#hud {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  color: white;
+  font-family: Arial;
+  font-size: 20px;
+}
 </style>
 </head>
 <body>
 
-<canvas id="game"></canvas>
+<div id="hud">Moedas: 0</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
 
 <script>
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
+let scene = new THREE.Scene();
+let camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
 
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+let renderer = new THREE.WebGLRenderer();
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
 
-// MOTO
-let moto = {
-  x: 100,
-  y: 300,
-  width: 60,
-  height: 30,
-  velocityY: 0,
-  gravity: 0.5,
-  lift: -10
-};
+// LUZ
+let light = new THREE.DirectionalLight(0xffffff, 1);
+light.position.set(10, 20, 10);
+scene.add(light);
 
 // CHÃO
-let ground = canvas.height - 50;
+let groundGeo = new THREE.PlaneGeometry(200, 200);
+let groundMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
+let ground = new THREE.Mesh(groundGeo, groundMat);
+ground.rotation.x = -Math.PI/2;
+scene.add(ground);
+
+// MOTO (cubo)
+let moto = new THREE.Mesh(
+  new THREE.BoxGeometry(2,1,4),
+  new THREE.MeshStandardMaterial({ color: 0xff0000 })
+);
+moto.position.y = 1;
+scene.add(moto);
+
+// MOEDAS
+let coins = [];
+let coinGeo = new THREE.SphereGeometry(0.5);
+let coinMat = new THREE.MeshStandardMaterial({ color: 0xffff00 });
+
+for(let i=0;i<20;i++){
+  let coin = new THREE.Mesh(coinGeo, coinMat);
+  coin.position.set(
+    Math.random()*100-50,
+    1,
+    Math.random()*100-50
+  );
+  scene.add(coin);
+  coins.push(coin);
+}
+
+// BOTS (carros)
+let bots = [];
+for(let i=0;i<5;i++){
+  let bot = new THREE.Mesh(
+    new THREE.BoxGeometry(2,1,4),
+    new THREE.MeshStandardMaterial({ color: 0x00ff00 })
+  );
+  bot.position.set(Math.random()*50-25,1,Math.random()*50-25);
+  scene.add(bot);
+  bots.push(bot);
+}
 
 // CONTROLE
-document.addEventListener("keydown", e => {
-  if (e.code === "Space") {
-    moto.velocityY = moto.lift;
-  }
-});
+let keys = {};
+document.addEventListener("keydown", e => keys[e.key]=true);
+document.addEventListener("keyup", e => keys[e.key]=false);
 
-// GAME LOOP
-function update() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+let speed = 0;
+let coinsCollected = 0;
 
-  // Gravidade
-  moto.velocityY += moto.gravity;
-  moto.y += moto.velocityY;
+// LOOP
+function animate(){
+  requestAnimationFrame(animate);
 
-  // Colisão com chão
-  if (moto.y > ground - moto.height) {
-    moto.y = ground - moto.height;
-    moto.velocityY = 0;
-  }
+  // CONTROLES
+  if(keys["w"]) speed = 0.3;
+  else if(keys["s"]) speed = -0.2;
+  else speed *= 0.95;
 
-  draw();
-  requestAnimationFrame(update);
+  if(keys["a"]) moto.rotation.y += 0.05;
+  if(keys["d"]) moto.rotation.y -= 0.05;
+
+  moto.translateZ(speed);
+
+  // CÂMERA 3ª pessoa
+  camera.position.x = moto.position.x + Math.sin(moto.rotation.y)*-10;
+  camera.position.z = moto.position.z + Math.cos(moto.rotation.y)*-10;
+  camera.position.y = 5;
+  camera.lookAt(moto.position);
+
+  // COLETAR MOEDAS
+  coins.forEach((coin, index) => {
+    if(coin.position.distanceTo(moto.position) < 2){
+      scene.remove(coin);
+      coins.splice(index,1);
+      coinsCollected++;
+      document.getElementById("hud").innerText = "Moedas: " + coinsCollected;
+    }
+  });
+
+  // BOTS andando
+  bots.forEach(bot=>{
+    bot.position.x += Math.sin(Date.now()*0.001);
+    bot.position.z += Math.cos(Date.now()*0.001);
+  });
+
+  renderer.render(scene, camera);
 }
 
-// DESENHAR
-function draw() {
-  // chão
-  ctx.fillStyle = "#654321";
-  ctx.fillRect(0, ground, canvas.width, 50);
-
-  // moto
-  ctx.fillStyle = "black";
-  ctx.fillRect(moto.x, moto.y, moto.width, moto.height);
-
-  // roda
-  ctx.beginPath();
-  ctx.arc(moto.x + 10, moto.y + 30, 10, 0, Math.PI * 2);
-  ctx.arc(moto.x + 50, moto.y + 30, 10, 0, Math.PI * 2);
-  ctx.fill();
-
-  // asa
-  ctx.fillStyle = "white";
-  ctx.beginPath();
-  ctx.moveTo(moto.x + 20, moto.y);
-  ctx.lineTo(moto.x + 40, moto.y - 20);
-  ctx.lineTo(moto.x + 60, moto.y);
-  ctx.fill();
-}
-
-// iniciar
-update();
+animate();
 </script>
 
 </body>
