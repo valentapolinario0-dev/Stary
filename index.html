@@ -2,77 +2,36 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Moto 3D PRO</title>
+<title>GTA Moto Lite</title>
 
-<!-- FORÇA MODO HORIZONTAL -->
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-body {
-  margin: 0;
-  overflow: hidden;
-  background: black;
-}
+body { margin:0; overflow:hidden; background:black; }
 
 /* HUD */
 #hud {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  color: #00ffcc;
-  font-family: Arial;
-  font-size: 22px;
-  text-shadow: 0 0 10px #00ffcc;
-}
-
-#speed {
-  position: absolute;
-  top: 40px;
-  left: 10px;
-  color: white;
-}
-
-/* BOTÕES MOBILE */
-.controls {
-  position: absolute;
-  bottom: 20px;
-  width: 100%;
-  text-align: center;
-}
-
-button {
-  width: 60px;
-  height: 60px;
-  margin: 10px;
-  font-size: 20px;
-  border-radius: 50%;
-  border: none;
-  background: rgba(255,255,255,0.3);
+  position:absolute;
+  top:10px;
+  left:10px;
+  color:white;
+  font-family:Arial;
+  font-size:18px;
 }
 </style>
 </head>
 
 <body>
 
-<div id="hud">Moedas: 0</div>
-<div id="speed">Velocidade: 0</div>
-
-<div class="controls">
-  <button id="left">⬅️</button>
-  <button id="up">⬆️</button>
-  <button id="right">➡️</button>
+<div id="hud">
+💰 Dinheiro: 0 <br>
+❤️ Vida: 100 <br>
+🎯 Missão: Colete 5 moedas
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
 
 <script>
-
-// ================= TEXTURAS BASE64 =================
-
-// CHÃO (fake textura)
-let groundTexture = new THREE.TextureLoader().load(
-"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII="
-);
 
 // ================= CENA =================
 let scene = new THREE.Scene();
@@ -84,103 +43,154 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
 // LUZ
-let light = new THREE.DirectionalLight(0xffffff, 1);
+let light = new THREE.DirectionalLight(0xffffff,1);
 light.position.set(10,20,10);
 scene.add(light);
 
-// CHÃO
+// ================= MAPA =================
+
+// chão
 let ground = new THREE.Mesh(
-  new THREE.PlaneGeometry(300,300),
-  new THREE.MeshStandardMaterial({ map: groundTexture, color:0x444444 })
+  new THREE.PlaneGeometry(400,400),
+  new THREE.MeshStandardMaterial({color:0x222222})
 );
 ground.rotation.x = -Math.PI/2;
 scene.add(ground);
 
-// MOTO
+// ruas
+for(let i=-100;i<=100;i+=20){
+  let road = new THREE.Mesh(
+    new THREE.BoxGeometry(400,0.1,6),
+    new THREE.MeshStandardMaterial({color:0x555555})
+  );
+  road.position.z = i;
+  scene.add(road);
+}
+
+// prédios
+for(let i=0;i<50;i++){
+  let building = new THREE.Mesh(
+    new THREE.BoxGeometry(5,Math.random()*20+5,5),
+    new THREE.MeshStandardMaterial({color:0x888888})
+  );
+  building.position.set(
+    Math.random()*200-100,
+    building.geometry.parameters.height/2,
+    Math.random()*200-100
+  );
+  scene.add(building);
+}
+
+// ================= PLAYER =================
+
 let moto = new THREE.Mesh(
   new THREE.BoxGeometry(2,1,4),
-  new THREE.MeshStandardMaterial({ color: 0xff0000 })
+  new THREE.MeshStandardMaterial({color:0xff0000})
 );
 moto.position.y = 1;
 scene.add(moto);
 
-// MOEDAS
+// ================= MOEDAS =================
 let coins = [];
-for(let i=0;i<30;i++){
+for(let i=0;i<20;i++){
   let coin = new THREE.Mesh(
     new THREE.CylinderGeometry(0.5,0.5,0.2,16),
-    new THREE.MeshStandardMaterial({ color: 0xffff00 })
+    new THREE.MeshStandardMaterial({color:0xffff00})
   );
   coin.position.set(Math.random()*100-50,1,Math.random()*100-50);
   scene.add(coin);
   coins.push(coin);
 }
 
-// BOTS
+// ================= BOTS (CARROS) =================
 let bots = [];
-for(let i=0;i<8;i++){
+for(let i=0;i<10;i++){
   let bot = new THREE.Mesh(
     new THREE.BoxGeometry(2,1,4),
-    new THREE.MeshStandardMaterial({ color: 0x00ff00 })
+    new THREE.MeshStandardMaterial({color:0x00ff00})
   );
-  bot.position.set(Math.random()*50-25,1,Math.random()*50-25);
+  bot.position.set(Math.random()*100-50,1,Math.random()*100-50);
   scene.add(bot);
   bots.push(bot);
 }
 
+// ================= NPC =================
+let npc = new THREE.Mesh(
+  new THREE.BoxGeometry(1,2,1),
+  new THREE.MeshStandardMaterial({color:0x0000ff})
+);
+npc.position.set(10,1,10);
+scene.add(npc);
+
 // ================= CONTROLES =================
 let keys = {};
-document.addEventListener("keydown", e => keys[e.key]=true);
-document.addEventListener("keyup", e => keys[e.key]=false);
+document.addEventListener("keydown", e=>keys[e.key]=true);
+document.addEventListener("keyup", e=>keys[e.key]=false);
 
-// MOBILE
-document.getElementById("left").onclick = ()=> keys["a"]=true;
-document.getElementById("right").onclick = ()=> keys["d"]=true;
-document.getElementById("up").onclick = ()=> keys["w"]=true;
-
-// ================= GAME =================
+// ================= SISTEMA =================
 let speed = 0;
-let coinsCollected = 0;
+let money = 0;
+let life = 100;
+let mission = 0;
 
+// ================= LOOP =================
 function animate(){
-  requestAnimationFrame(animate);
+requestAnimationFrame(animate);
 
-  // MOVIMENTO
-  if(keys["w"]) speed = 0.4;
-  else speed *= 0.95;
+// movimento
+if(keys["w"]) speed = 0.5;
+else speed *= 0.95;
 
-  if(keys["a"]) moto.rotation.y += 0.05;
-  if(keys["d"]) moto.rotation.y -= 0.05;
+if(keys["a"]) moto.rotation.y += 0.05;
+if(keys["d"]) moto.rotation.y -= 0.05;
 
-  moto.translateZ(speed);
+moto.translateZ(speed);
 
-  // CÂMERA ESTILO JOGO
-  camera.position.x = moto.position.x + Math.sin(moto.rotation.y)*-8;
-  camera.position.z = moto.position.z + Math.cos(moto.rotation.y)*-8;
-  camera.position.y = 4;
-  camera.lookAt(moto.position);
+// câmera
+camera.position.x = moto.position.x + Math.sin(moto.rotation.y)*-10;
+camera.position.z = moto.position.z + Math.cos(moto.rotation.y)*-10;
+camera.position.y = 5;
+camera.lookAt(moto.position);
 
-  // MOEDAS
-  coins.forEach((coin, i)=>{
-    coin.rotation.y += 0.1;
-    if(coin.position.distanceTo(moto.position) < 2){
-      scene.remove(coin);
-      coins.splice(i,1);
-      coinsCollected++;
-      document.getElementById("hud").innerText = "Moedas: " + coinsCollected;
-    }
-  });
+// moedas
+coins.forEach((coin,i)=>{
+coin.rotation.y += 0.1;
 
-  // BOTS
-  bots.forEach(bot=>{
-    bot.position.x += Math.sin(Date.now()*0.001);
-    bot.position.z += Math.cos(Date.now()*0.001);
-  });
+if(coin.position.distanceTo(moto.position)<2){
+scene.remove(coin);
+coins.splice(i,1);
+money++;
 
-  // HUD SPEED
-  document.getElementById("speed").innerText = "Velocidade: " + speed.toFixed(2);
+document.getElementById("hud").innerHTML =
+"💰 Dinheiro: "+money+"<br>❤️ Vida: "+life+"<br>🎯 Missão: Colete 5 moedas";
 
-  renderer.render(scene, camera);
+if(money >=5 && mission===0){
+alert("Missão completa!");
+mission++;
+}
+}
+});
+
+// bots movimento + dano
+bots.forEach(bot=>{
+bot.position.x += Math.sin(Date.now()*0.001);
+
+if(bot.position.distanceTo(moto.position)<2){
+life -= 0.5;
+}
+});
+
+// morte
+if(life <= 0){
+alert("Você morreu!");
+location.reload();
+}
+
+// HUD update
+document.getElementById("hud").innerHTML =
+"💰 Dinheiro: "+money+"<br>❤️ Vida: "+Math.floor(life)+"<br>🎯 Missão: Colete 5 moedas";
+
+renderer.render(scene,camera);
 }
 
 animate();
