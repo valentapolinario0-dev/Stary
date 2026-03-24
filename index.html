@@ -1,20 +1,100 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
-<meta charset="UTF-8">
-<title>GTA RP</title>
-<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+    <meta charset="UTF-8">
+    <title>Contato</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #4facfe, #00f2fe);
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 400px;
+            margin: 50px auto;
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+
+        h2 {
+            text-align: center;
+        }
+
+        label {
+            display: block;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            outline: none;
+        }
+
+        textarea {
+            resize: none;
+            height: 100px;
+        }
+
+        button {
+            width: 100%;
+            margin-top: 15px;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            background: #4facfe;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #00c6ff;
+        }
+
+        .email-info {
+            margin-top: 15px;
+            font-size: 14px;
+            text-align: center;
+        }
+    </style>
 </head>
 <body>
-<div id="hud" style="position:absolute;top:10px;left:10px;color:white;"></div>
-<div id="chat" style="position:absolute;bottom:0;left:0;width:300px;">
-  <div id="messages" style="height:150px;overflow:auto;background:rgba(0,0,0,0.5);color:white;"></div>
-  <input id="chatInput" placeholder="Digite..." style="width:100%;">
+
+<div class="container">
+    <h2>Contato</h2>
+
+    <form action="mailto:seuemail@email.com" method="post" enctype="text/plain">
+        
+        <label>Nome:</label>
+        <input type="text" name="nome" placeholder="Digite seu nome" required>
+
+        <label>Seu E-mail:</label>
+        <input type="email" name="email" placeholder="Digite seu e-mail" required>
+
+        <label>E-mail para enviar:</label>
+        <input type="email" name="destino" placeholder="Para quem enviar" required>
+
+        <label>Escrever mensagem:</label>
+        <textarea name="mensagem" placeholder="Digite sua mensagem" required></textarea>
+
+        <button type="submit">Enviar Mensagem</button>
+    </form>
+
+    <div class="email-info">
+        Seu e-mail de contato: <b>seuemail@email.com</b>
+    </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/loaders/GLTFLoader.js"></script>
-<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
-<script src="client.js"></script>
 </body>
 </html>
